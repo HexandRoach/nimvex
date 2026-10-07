@@ -1,0 +1,66 @@
+
+# Python generated files
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local backups and diagnostics
+browser.py.backup-*
+*.log
+benchmarks/
+
+# Private configuration and browser data
+.env
+.env.*
+web-profile/
+web-cache/
+bookmarks.json
+Cookies
+Cookies-journal
+Local Storage/
+Session Storage/
+
+# Python generated files
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local backups and diagnostics
+browser.py.backup-*
+*.log
+benchmarks/
+
+# Private configuration and browser data
+.env
+.env.*
+web-profile/
+web-cache/
+bookmarks.json
+Cookies
+Cookies-journal
+Local Storage/
+Session Storage/
+
+# Python environments and generated files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local backups and diagnostics
+browser.py.backup-*
+*.log
+benchmarks/
+
+# Secrets and local browser data
+.env
+.env.*
+web-profile/
+web-cache/
+bookmarks.json
+Cookies
+Cookies-journal
+Local Storage/
+Session Storage/
