@@ -1,3 +1,4 @@
+import base64
 from time import monotonic
 from PySide6.QtCore import QTimer
 from PySide6.QtWebEngineCore import QWebEnginePage
@@ -38,6 +39,60 @@ p { color: #9caebb; line-height: 1.8; }
     display: inline-block; border: 1px solid #334552;
     border-radius: 20px; padding: 6px 16px; font-size: 13px;
 }
+
+/* NIMVEX_WALLPAPER */
+html {
+    min-height: 100%;
+    background: #071827;
+}
+body {
+    margin: 0;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background-color: #071827;
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(3, 15, 27, 0.65),
+            rgba(3, 15, 27, 0.08)
+        ),
+        url("__NIMVEX_WALLPAPER_URL__");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: #e7eef6;
+    text-align: left;
+}
+main {
+    box-sizing: border-box;
+    width: min(520px, 90vw);
+    margin: 0;
+    padding: clamp(70px, 16vh, 160px) 28px 48px;
+}
+h1 {
+    color: #8af3df;
+    text-shadow: 0 3px 18px rgba(0, 0, 0, 0.65);
+}
+p {
+    color: #e0edf5;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+.badge {
+    background: rgba(7, 24, 39, 0.75);
+    border-color: rgba(180, 220, 235, 0.35);
+    color: #e0edf5;
+}
+@media (max-width: 600px) {
+    main {
+        width: 100%;
+        padding: 48px 24px;
+    }
+    h1 {
+        font-size: 44px;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -50,6 +105,16 @@ p { color: #9caebb; line-height: 1.8; }
 </body>
 </html>
 """
+
+# Load the wallpaper separately instead of embedding it in HOME.
+NIMVEX_WALLPAPER = Path(__file__).resolve().parent / "assets" / "HexandRoach.png"
+HOME = HOME.replace(
+    "__NIMVEX_WALLPAPER_URL__",
+    NIMVEX_WALLPAPER.as_uri()
+)
+HOME_BASE_URL = QUrl.fromLocalFile(
+    str(Path(__file__).resolve().parent) + "/"
+)
 
 
 class WebView(QWebEngineView):
@@ -325,7 +390,7 @@ class Browser(QMainWindow):
         if isinstance(url, QUrl):
             view.load(url)
         else:
-            view.setHtml(HOME, QUrl("about:blank"))
+            view.setHtml(HOME, HOME_BASE_URL)
             self.address.setFocus()
 
         self.sync_ui()
@@ -374,7 +439,7 @@ class Browser(QMainWindow):
 
         url = view.url()
         text = url.toString()
-        self.address.setText("" if text == "about:blank" else text)
+        self.address.setText("" if text == "about:blank" or url == HOME_BASE_URL else text)
         self.connection_label.setText(
             "HTTPS" if url.scheme() == "https" else
             "HTTP" if url.scheme() == "http" else "WEB"
@@ -433,7 +498,7 @@ class Browser(QMainWindow):
 
     def show_home(self):
         if self.current_view():
-            self.current_view().setHtml(HOME, QUrl("about:blank"))
+            self.current_view().setHtml(HOME, HOME_BASE_URL)
 
     def focus_address(self):
         self.address.setFocus()
