@@ -1,9 +1,3 @@
-cd ~/Projects/nimvex &&
-mkdir -p ~/Backups/nimvex &&
-if [ -f README.md ]; then
-  cp README.md ~/Backups/nimvex/README-before-update-$(date +%Y%m%d-%H%M%S).md
-fi &&
-cat > README.md <<'EOF'
 # Nimvex
 
 Nimvex is an experimental Linux web browser built with Python,
