@@ -1,3 +1,5 @@
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QSystemTrayIcon, QStyle
 import base64
 from time import monotonic
 from PySide6.QtCore import QTimer
@@ -602,7 +604,7 @@ class Browser(QMainWindow):
             lambda: self.new_tab(QUrl("chrome://media-internals"))
         )
         self.browser_menu.addAction("About Nimvex", self.about)
-        self.browser_menu.addAction("Quit", self.close)
+        self.browser_menu.addAction("Quit", self.quit_application)
 
     def setup_shortcuts(self):
         commands = [
@@ -865,10 +867,66 @@ class GamingBrowser(Browser):
         page.setLifecycleState(QWebEnginePage.LifecycleState.Frozen)
 
 
-app = QApplication(sys.argv)
+
+class TrayBrowser(GamingBrowser):
+    def __init__(self):
+        super().__init__()
+
+        icon = QIcon(str(Path(__file__).resolve().parent / "assets" / "nimvex-logo.svg"))
+        if icon.isNull():
+            icon = self.style().standardIcon(
+                QStyle.StandardPixmap.SP_ComputerIcon
+            )
+        self.setWindowIcon(icon)
+
+        self.tray_icon = QSystemTrayIcon(icon, self)
+        self.tray_icon.setToolTip("Nimvex")
+
+        self.tray_menu = QMenu(self)
+        self.tray_menu.addAction("Open Nimvex", self.restore_from_tray)
+        self.tray_menu.addSeparator()
+        self.tray_menu.addAction("Quit Nimvex", self.quit_application)
+
+        self.tray_icon.setContextMenu(self.tray_menu)
+        self.tray_icon.activated.connect(self.tray_activated)
+        self.tray_icon.show()
+
+    def restore_from_tray(self):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def tray_activated(self, reason):
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self.restore_from_tray()
+
+    def quit_application(self):
+        self.tray_icon.hide()
+        QApplication.instance().quit()
+
+    def closeEvent(self, event):
+        if (
+            QSystemTrayIcon.isSystemTrayAvailable()
+            and self.tray_icon.isVisible()
+        ):
+            event.ignore()
+            self.hide()
+        else:
+            super().closeEvent(event)
+
+
+app = QApplication(["nimvex", *sys.argv[1:]])
+app.setDesktopFileName("nimvex")
+app.setApplicationDisplayName("Nimvex")
+app.setWindowIcon(QIcon(str(
+    Path(__file__).resolve().parent / "assets" / "nimvex-logo.svg"
+)))
 app.setApplicationName("Nimvex")
 app.setOrganizationName("Nimvex")
-window = GamingBrowser()
+window = TrayBrowser()
 from nimvex_updater import Updater
 window.updater = Updater(window, Path(__file__).resolve().parent)
 window.show()

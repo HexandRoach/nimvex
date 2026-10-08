@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nimvex
+Comment=Browse the web with Nimvex
+Exec=nimvex
+Icon=nimvex
+Terminal=false
+Categories=Utility;
+StartupNotify=true
+StartupWMClass=nimvex
