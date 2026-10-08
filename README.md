@@ -10,6 +10,8 @@ system-tray integration, and an optional gaming mode.
 
 Nimvex is currently a prototype being prepared for public alpha testing.
 
+[Download Nimvex](https://github.com/HexandRoach/nimvex/archive/refs/heads/main.zip)
+
 The source version can be run locally. A standalone downloadable alpha
 package is not yet documented as available.
 
