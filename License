@@ -1,11 +1,34 @@
-Nimvex — All Rights Reserved
+Nimvex — Proprietary Software License
 
-Copyright (c) 2026 [HexandRoach]
+Copyright (c) 2026 HexandRoach. All rights reserved.
 
-No permission is granted to use, copy, modify, distribute, sublicense,
-sell, or create derivative works from the original Nimvex source code
-or other original project materials without prior written permission
-from the copyright holder, except as required by applicable law.
+Permission to use official releases
+You may download, install, and run official Nimvex releases provided
+by HexandRoach, including official updates, for personal or internal
+business use. You may make copies reasonably necessary for installation
+and backup.
 
+Restrictions
+Except for the permissions expressly granted above, rights granted
+under applicable law, and permissions applicable to third-party
+components, you may not modify, redistribute, sublicense, sell, or
+create derivative works from the original Nimvex code or other original
+project materials without prior written permission from HexandRoach.
+
+No ownership rights are transferred. All rights not expressly granted
+are reserved.
+
+GitHub
+This license does not limit permissions granted under GitHub's Terms
+of Service for viewing and forking this repository on GitHub. Those
+permissions do not otherwise authorize modification or redistribution
+outside their scope.
+
+Third-party components
 Third-party components remain subject to their respective licenses.
-This notice does not restrict rights granted under those licenses.
+This license does not restrict rights granted under those licenses.
+
+Disclaimer
+To the extent permitted by applicable law, Nimvex is provided "as is",
+without warranties of any kind. To the extent permitted by applicable
+law, HexandRoach is not liable for damages arising from use of Nimvex.
