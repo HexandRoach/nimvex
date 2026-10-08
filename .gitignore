@@ -64,3 +64,6 @@ Cookies
 Cookies-journal
 Local Storage/
 Session Storage/
+
+# Local updater backups
+nimvex_updater.py.backup-*

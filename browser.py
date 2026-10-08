@@ -804,5 +804,7 @@ app = QApplication(sys.argv)
 app.setApplicationName("Nimvex")
 app.setOrganizationName("Nimvex")
 window = GamingBrowser()
+from nimvex_updater import Updater
+window.updater = Updater(window, Path(__file__).resolve().parent)
 window.show()
 sys.exit(app.exec())
