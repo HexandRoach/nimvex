@@ -59,6 +59,11 @@ class GitJob(QThread):
 class Updater:
     def __init__(self, browser, root):
         self.browser, self.root = browser, Path(root).resolve()
+        from nimvex_desktop import repair_desktop_icon
+        try:
+            repair_desktop_icon(self.root)
+        except Exception as error:
+            print(f"Nimvex desktop icon repair failed: {error}")
         directory = Path(QStandardPaths.writableLocation(
             QStandardPaths.StandardLocation.AppDataLocation))
         directory.mkdir(parents=True, exist_ok=True)
