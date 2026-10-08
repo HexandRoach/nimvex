@@ -10,10 +10,11 @@ system-tray integration, and an optional gaming mode.
 
 Nimvex is currently a prototype being prepared for public alpha testing.
 
-[Download Nimvex](https://github.com/HexandRoach/nimvex/archive/refs/heads/main.zip)
+[Download Nimvex](https://github.com/HexandRoach/nimvex/releases)
 
-The source version can be run locally. A standalone downloadable alpha
-package is not yet documented as available.
+A Nobara-targeted RPM test build has been prepared. Installable test
+packages are published as pre-release assets on the Releases page.
+If no RPM asset is listed, the app download has not been published yet.
 
 Use Nimvex for testing and non-sensitive browsing while its functionality,
 packaging, and update behavior are being validated.
@@ -68,51 +69,70 @@ Hiding the window does not automatically stop media or web activity.
 Not every background tab will sleep: eligibility also depends on Qt
 WebEngine's lifecycle recommendations.
 
-## Running from source
+## Install and launch the test app
 
-### Requirements
+### Initial test target
 
-- Linux desktop environment.
-- Python compatible with the selected PySide6 release.
-- PySide6, including Qt WebEngine.
-- Git to clone the repository.
+- Nobara Linux 44, KDE Plasma Desktop Edition.
+- Initial hardware target: x86_64.
+- Other distributions and architectures are not yet validated.
 
-System-tray behavior requires a desktop environment with tray support.
+This is an experimental test build. Use it for non-sensitive browsing.
 
-### Get the source
+### Download and install
 
-```bash
-git clone [https://github.com/HexandRoach/nimvex.git](https://github.com/HexandRoach/nimvex.git)
-cd nimvex
-```
+1. Click Download Nimvex near the top of this README.
+2. On the Releases page, open the latest Nimvex test pre-release.
+3. Under Assets, download the attached nimvex RPM file.
+4. Do not choose Source code (zip) or Source code (tar.gz) if you want
+   the installable app.
+5. Fully quit any existing Nimvex instance, including its tray instance.
+6. Open the downloaded RPM with Nobara's graphical RPM installer.
+7. Review the installation prompt and approve it if you want to install.
+8. After installation, open the application menu, search for Nimvex,
+   and launch it.
 
-### Set up a Python environment
+Users do not need to create a Python environment or run browser.py.
+The RPM declares Python and PySide6 as system dependencies. Internet
+access may be needed to install missing dependencies.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install PySide6
-```
+Graphical installation and dependency resolution are still being tested.
+If double-clicking the RPM opens an archive viewer, try Open With and
+select the Nobara RPM installer. If no installer is offered, report that
+rather than assuming the package is broken.
 
-If installation fails, check that the chosen PySide6 version supports
-your Python version and system architecture.
+The RPM is not a universal Linux package or a self-contained portable app.
 
-### Launch
+### Later launches
 
-With the environment activated:
+Launch Nimvex from the application menu. You can pin that menu entry
+to the taskbar.
 
-```bash
-python browser.py
-```
+If closing the window hides Nimvex in the tray, use Open Nimvex from
+the tray to restore it. Use Quit Nimvex or the browser's Quit menu to
+exit completely.
 
-Keep the project assets in place:
+Avoid starting multiple instances: single-instance protection is not
+implemented.
 
-```text
-assets/
-├── HexandRoach.png
-└── nimvex-logo.svg
-```
+### Existing source users
+
+An existing user-level nimvex.desktop entry may override the launcher
+installed by the RPM and continue opening the source copy.
+
+Back up that old launcher outside your user applications directory before
+testing the packaged launcher. Do not delete your browser profile or
+application data. Re-pin the installed application-menu entry if needed.
+
+The packaged build has an About updates menu item instead of the
+Git-based source updater. This helps identify which copy is running.
+
+### Build and test status
+
+The local RPM build and desktop-entry validation succeeded.
+Graphical installation, dependency resolution on a fresh system,
+application-menu launch, and end-to-end browser behavior still need
+tester verification.
 
 ## Keyboard shortcuts
 
@@ -130,37 +150,37 @@ assets/
 
 ## Application-menu launcher
 
-The repository includes:
+The RPM installs:
 
-```text
-packaging/nimvex.desktop
-```
+- The nimvex launch command.
+- The browser and assets under /usr/share/nimvex.
+- The desktop entry under /usr/share/applications.
+- The PNG icon in the hicolor application-icon directory.
 
-Its category is:
+The launcher is categorized under Utilities. The menu section may be
+named differently depending on the desktop environment.
 
-```ini
-Categories=Utility;
-```
-
-This is a packaging template, not a complete installation script.
-
-The template expects:
-
-- A launch command named `nimvex`.
-- An installed icon named `nimvex`.
-- The desktop entry installed in an applications directory.
-
-Copying the template alone does not install the browser or its launch
-command. For a source checkout, a local launcher must use the actual
-Python executable, project path, and icon path.
+The source-code ZIP does not install these files or create a shortcut.
 
 ## Updates
 
-The project includes `nimvex_updater.py`.
+### Installed RPM
 
-Update behavior for a standalone packaged release still needs to be
-reviewed and tested. Do not assume the source updater will work unchanged
-inside an AppImage or other package.
+The Git-based in-browser updater is disabled in this test package.
+
+To update, fully quit Nimvex, download a newer published RPM, and install
+it through the package installer. An automatic package-update channel
+has not yet been configured or tested.
+
+Do not delete your browser profile or application data when updating.
+
+### Source checkout
+
+The source version includes a Git-based updater. It requires a clean
+main-branch checkout, GitHub SSH access, and the exact SSH origin URL
+expected by nimvex_updater.py.
+
+It does not support source ZIP installations or the installed RPM.
 
 ## Alpha-release plans
 
@@ -179,11 +199,13 @@ until the build has been tested.
 ## Known limitations
 
 - Nimvex is experimental, not a production-ready browser.
-- Browser downloads and extensions are not implemented in the current
-  documented prototype.
+- Basic downloads have been added and locally tested; broader testing
+  is still needed. A full download manager is not implemented.
+- Browser extensions are not implemented.
 - The current tray implementation does not prevent multiple instances.
 - Tray behavior and menu placement depend on the desktop environment.
-- Standalone packaging and packaged updates are not yet validated.
+- RPM installation and package updates need end-to-end validation.
+- Other Linux distributions and architectures are not validated.
 - Closing the window to the tray leaves the browser running.
 
 ## Reporting problems

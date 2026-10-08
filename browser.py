@@ -1,3 +1,5 @@
+from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QSystemTrayIcon, QStyle
 import base64
@@ -230,6 +232,55 @@ class BrowserTabs(QWidget):
 
 
 class Browser(QMainWindow):
+
+    def handle_download(self, download):
+        directory = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DownloadLocation
+        ) or str(Path.home())
+
+        name = Path(download.downloadFileName()).name or "download"
+        destination, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save download",
+            str(Path(directory) / name),
+            "All files (*)",
+        )
+
+        if not destination:
+            download.cancel()
+            return
+
+        target = Path(destination)
+        download.setDownloadDirectory(str(target.parent))
+        download.setDownloadFileName(target.name)
+
+        self.active_downloads.append(download)
+        download.isFinishedChanged.connect(
+            lambda item=download: self.download_finished(item)
+        )
+        self.statusBar().showMessage("Downloading: " + target.name)
+        download.accept()
+
+    def download_finished(self, download):
+        if not download.isFinished():
+            return
+
+        state = download.state()
+        states = QWebEngineDownloadRequest.DownloadState
+        target = Path(download.downloadDirectory()) / download.downloadFileName()
+
+        if state == states.DownloadCompleted:
+            self.statusBar().showMessage("Download complete: " + str(target))
+        elif state == states.DownloadInterrupted:
+            reason = download.interruptReasonString()
+            self.statusBar().showMessage("Download failed: " + reason)
+            QMessageBox.warning(self, "Download failed", reason)
+        elif state == states.DownloadCancelled:
+            self.statusBar().showMessage("Download cancelled.")
+
+        if download in self.active_downloads:
+            self.active_downloads.remove(download)
+
     def __init__(self):
         super().__init__()
         self.resize(1280, 820)
@@ -251,6 +302,8 @@ class Browser(QMainWindow):
         cache_root.mkdir(parents=True, exist_ok=True)
 
         self.profile = QWebEngineProfile("NimvexDefault", self)
+        self.active_downloads = []
+        self.profile.downloadRequested.connect(self.handle_download)
         self.profile.setPersistentStoragePath(str(profile_root))
         self.profile.setCachePath(str(cache_root))
         self.profile.setPersistentCookiesPolicy(
