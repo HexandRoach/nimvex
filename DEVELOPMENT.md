@@ -60,3 +60,8 @@ Do not disable sandboxing or web security to work around this.
 3. Investigate a supported Qt/NVIDIA video-acceleration path.
 4. Add clear-browsing-data controls.
 5. Benchmark against Firefox before claiming lower resource use.
+
+
+## Update notification test
+
+Test the Nimvex menu badge and scheduled updater.
