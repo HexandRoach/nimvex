@@ -32,18 +32,30 @@ Do not assume they are included in the downloadable RPM above.
 
 System tray integration has been removed.
 
-## Mobile web companion preview
+## Mobile Preview — iPhone, iPad & Android — Work in Progress
 
 [Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
 
-The mobile preview is a web companion intended for use in an existing
-browser on iPhone, iPad, or Android.
+Nimvex Mobile Preview is a mobile-friendly web companion with:
 
-It is not a downloadable iOS or Android browser app and should not be
-confused with the desktop release.
+- Web search and website navigation.
+- Saved website shortcuts.
+- Local notes.
+
+Open the link in your phone's browser. Shortcuts and notes are stored
+locally in that browser and do not sync with the desktop version.
 
 The mobile preview source has been pushed to the repository. Public
 deployment is pending verification.
+
+### Current limitations
+
+This preview is not a dedicated iOS or Android browser app.
+It uses your existing browser to open websites and does not include
+Nimvex's desktop tools or extensions.
+
+Clearing website data may delete saved shortcuts and notes.
+Do not store passwords or sensitive information in notes.
 
 ## Updates
 
