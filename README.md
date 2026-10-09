@@ -1,22 +1,68 @@
 # Nimvex
 
-A desktop browser with Startpage search, tabs, bookmarks, downloads, and tray integration.
+A desktop web browser with Startpage search, tabs, bookmarks, downloads,
+and in-app update checking.
 
-## Download
+Nimvex is developed for Nobara 44 KDE on x86_64.
 
-**[Download Nimvex 0.1.0](https://hexandroach.github.io/nimvex/rpm/nobara/44/x86_64/nimvex-0.1.0-1.fc44.noarch.rpm)**
+## Desktop download
 
-For Nobara 44 KDE on x86_64.
+[Download Nimvex 0.1.0-1 for Nobara 44 KDE](https://hexandroach.github.io/nimvex/rpm/nobara/44/x86_64/nimvex-0.1.0-1.fc44.noarch.rpm)
 
+This link points to the older 0.1.0-1 package. The repository's release
+history records a signed 0.1.0-2 update that removes system tray
+integration. The direct download link will be updated once the newer
+package URL is verified.
+
+## Current development version
+
+The development source includes additions beyond the original desktop
+release:
+
+- Tools Hub.
+- Tab search.
+- Reopen closed tabs.
+- Duplicate-tab detection.
+- Bookmark search.
+- Sidebar notes.
+- Saved workspaces.
+
+These features are recorded in the project's development commits.
+Do not assume they are included in the downloadable RPM above.
+
+System tray integration has been removed.
+
+## Mobile web companion preview
+
+[Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
+
+The mobile preview is a web companion intended for use in an existing
+browser on iPhone, iPad, or Android.
+
+It is not a downloadable iOS or Android browser app and should not be
+confused with the desktop release.
+
+The mobile preview source has been pushed to the repository. Public
+deployment is pending verification.
 
 ## Updates
 
-Select “Check for updates…” in the browser menu. Restart after a confirmed update.
+Select “Check for updates…” in the browser menu. Restart after a
+confirmed update.
 
-Signed installation and repository access are verified on the developer’s system; fresh-system installation and in-app update installation are still pending verification.
+Signed installation and repository access are verified on the
+developer's system. Fresh-system installation and in-app update
+installation are still pending verification.
+
+## Feedback
+
+[Report a problem](https://github.com/HexandRoach/nimvex/issues)
+
+When reporting a problem, include your operating system, Nimvex version,
+the steps to reproduce it, and any relevant error messages.
 
 ## License
 
-Official releases are free to use under [License](License). Modification and redistribution require permission, subject to the license and applicable law.
-
-[Report a problem](https://github.com/HexandRoach/nimvex/issues)
+Official releases are free to use under [License](License). Modification
+and redistribution require permission, subject to the license and
+applicable law.
