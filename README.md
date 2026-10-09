@@ -20,3 +20,25 @@ Signed installation and repository access are verified on the developer’s syst
 Official releases are free to use under [License](License). Modification and redistribution require permission, subject to the license and applicable law.
 
 [Report a problem](https://github.com/HexandRoach/nimvex/issues)
+
+## Mobile Preview — iPhone, iPad & Android
+
+[Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
+
+Nimvex Mobile Preview is a mobile-friendly web companion with:
+
+- Web search and website navigation.
+- Saved website shortcuts.
+- Local notes.
+
+Open the link in your phone’s browser. Shortcuts and notes are stored
+locally in that browser and do not sync with the desktop version.
+
+### Current limitations
+
+This preview is not a dedicated iOS or Android browser app.
+It uses your existing browser to open websites and does not include
+Nimvex’s desktop tools or extensions.
+
+Clearing website data may delete saved shortcuts and notes.
+Do not store passwords or sensitive information in notes.
