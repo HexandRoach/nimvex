@@ -32,6 +32,33 @@ Do not assume they are included in the downloadable RPM above.
 
 System tray integration has been removed.
 
+## Windows Preview — Work in Progress
+
+The first Windows x64 portable build has completed successfully on
+GitHub Actions. Windows runtime testing is pending.
+
+### Preview download
+
+The preview is currently available from the Artifacts section of the
+successful “Build Nimvex Windows preview” run in GitHub Actions.
+
+A public release download link will be added after the preview package
+is published.
+
+### Running the preview
+
+Extract the downloaded artifact archive, then extract the Windows
+preview ZIP inside it. Open `Nimvex.exe` from the extracted `Nimvex`
+folder and keep all supporting files in place.
+
+### Current limitations
+
+- Experimental, unsigned build.
+- Startup, browsing, downloads, and saved data have not yet been
+  verified on Windows.
+- Automatic updates are not supported. Updates require downloading
+  a newer Windows package.
+
 ## Mobile Preview — iPhone, iPad & Android — Work in Progress
 
 [Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
