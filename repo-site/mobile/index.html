@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820">
+<meta name="description" content="Nimvex Mobile Preview: a web companion with search, shortcuts, and local notes.">
+<title>Nimvex Mobile Preview</title>
+<link rel="icon" href="nimvex.png">
+<link rel="apple-touch-icon" href="nimvex.png">
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#101820;color:#eef7f7}
+*{box-sizing:border-box}
+body{margin:0;padding:20px}
+main{max-width:720px;margin:auto}
+h1{margin-bottom:6px}
+p{line-height:1.6}
+.badge{display:inline-block;padding:5px 10px;border:1px solid #55ddc3;border-radius:20px;color:#55ddc3}
+section{background:#19262f;border:1px solid #30434e;border-radius:16px;padding:18px;margin:18px 0}
+label{display:block;margin:10px 0 6px}
+input,textarea,button{font:inherit;border-radius:10px;padding:12px}
+input,textarea{width:100%;border:1px solid #50616a;background:#101820;color:#fff}
+textarea{min-height:180px;resize:vertical}
+button{border:0;background:#55ddc3;color:#10231f;cursor:pointer;min-height:44px}
+button.secondary{background:#30434e;color:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.shortcuts{display:grid;gap:10px;margin-top:14px}
+.shortcut{display:flex;align-items:center;gap:10px}
+.shortcut a{flex:1;overflow-wrap:anywhere;color:#73e5d0;padding:10px}
+small,.muted{color:#b8cbd1}
+#notice{min-height:24px;color:#ffe1a3}
+a{color:#73e5d0}
+:focus-visible{outline:3px solid #ffe1a3;outline-offset:3px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<span class="badge">Mobile Preview</span>
+<h1>Nimvex</h1>
+<p>Your space on the web.</p>
+<p class="muted">A web companion for your existing phone browser.
+This is not the Nimvex desktop browser or a dedicated Android/iOS app.
+Desktop tools and extensions are not included.</p>
+</header>
+
+<p id="notice" role="status" aria-live="polite"></p>
+
+<section>
+<h2>Search or open a website</h2>
+<form id="searchForm">
+<label for="query">Search terms or website address</label>
+<input id="query" type="text" placeholder="Search or enter example.com"
+ autocomplete="off" required>
+<div class="row"><button type="submit">Go</button></div>
+</form>
+<small>Search terms are sent to DuckDuckGo. Websites open in your existing browser.</small>
+</section>
+
+<section>
+<h2>Website shortcuts</h2>
+<form id="shortcutForm">
+<label for="shortcutName">Name</label>
+<input id="shortcutName" maxlength="80" required>
+<label for="shortcutUrl">Website address</label>
+<input id="shortcutUrl" type="text" placeholder="https://example.com" required>
+<div class="row"><button type="submit">Save shortcut</button></div>
+</form>
+<div id="shortcuts" class="shortcuts"></div>
+</section>
+
+<section>
+<h2>Local notes</h2>
+<label for="notes">Notes saved in this browser</label>
+<textarea id="notes" placeholder="Do not store passwords or secrets here."></textarea>
+<div class="row"><button id="saveNotes" type="button">Save notes</button></div>
+<p id="notesStatus" role="status" aria-live="polite"></p>
+</section>
+
+<section>
+<h2>About this preview</h2>
+<p>Shortcuts and notes are stored locally in this browser, not synchronized
+with your computer or other devices. Clearing website data can remove them.
+Private browsing or blocked storage may prevent saving.</p>
+<p>No analytics or automatic uploads are included in this page.
+Opening links or searching connects to the destination service.</p>
+<div class="row">
+<button id="clearData" class="secondary" type="button">Clear preview data</button>
+</div>
+<p><a href="../">Nimvex project home</a></p>
+</section>
+</main>
+
+<script>
+"use strict";
+const shortcutKey = "nimvex-mobile-shortcuts-v1";
+const notesKey = "nimvex-mobile-notes-v1";
+const notice = document.getElementById("notice");
+const notes = document.getElementById("notes");
+const notesStatus = document.getElementById("notesStatus");
+let shortcuts = [];
+let notesDirty = false;
+
+function message(text) { notice.textContent = text; }
+
+function website(value) {
+  const raw = value.trim();
+  if (!raw) throw new Error("Enter a website address.");
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw)) {
+    throw new Error("Only HTTP and HTTPS website addresses are allowed.");
+  }
+  const url = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
+  if (!["http:", "https:"].includes(url.protocol) || !url.hostname ||
+      url.username || url.password) {
+    throw new Error("Enter a website address without embedded credentials.");
+  }
+  return url.href;
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem(shortcutKey) || "[]");
+  if (!Array.isArray(saved)) throw new Error("Invalid shortcuts.");
+  shortcuts = saved.filter(item => {
+    if (!item || typeof item.name !== "string" || typeof item.url !== "string")
+      return false;
+    try { return website(item.url) === item.url; } catch { return false; }
+  });
+  notes.value = localStorage.getItem(notesKey) || "";
+} catch {
+  message("Some saved data could not be read. Saving may be unavailable.");
+}
+
+function persistShortcuts(next) {
+  try {
+    localStorage.setItem(shortcutKey, JSON.stringify(next));
+    shortcuts = next;
+    render();
+    return true;
+  } catch {
+    message("Shortcuts could not be saved. Check browser storage settings.");
+    return false;
+  }
+}
+
+function render() {
+  const container = document.getElementById("shortcuts");
+  container.replaceChildren();
+  if (!shortcuts.length) {
+    const hint = document.createElement("p");
+    hint.textContent = "No shortcuts saved yet.";
+    container.append(hint);
+  }
+  shortcuts.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "shortcut";
+    const link = document.createElement("a");
+    link.href = item.url;
+    link.textContent = item.name;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", "Remove " + item.name);
+    remove.addEventListener("click", () => {
+      const next = shortcuts.filter((_, i) => i !== index);
+      if (persistShortcuts(next)) message("Shortcut removed.");
+    });
+    row.append(link, remove);
+    container.append(row);
+  });
+}
+render();
+
+document.getElementById("searchForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const value = document.getElementById("query").value.trim();
+  if (!value) return;
+  try {
+    const looksLikeAddress = /^https?:\/\//i.test(value) ||
+      (!/\s/.test(value) && /^[^/]+\.[^/]+/.test(value));
+    const destination = looksLikeAddress
+      ? website(value)
+      : "https://duckduckgo.com/?q=" + encodeURIComponent(value);
+    if (notesDirty && !confirm("Your notes have unsaved changes. Leave anyway?")) return;
+    location.assign(destination);
+  } catch (error) { message(error.message); }
+});
+
+document.getElementById("shortcutForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const name = document.getElementById("shortcutName").value.trim();
+  if (!name) return;
+  try {
+    const url = website(document.getElementById("shortcutUrl").value);
+    if (persistShortcuts([...shortcuts, {name, url}])) {
+      event.target.reset();
+      message("Shortcut saved locally.");
+    }
+  } catch (error) { message(error.message); }
+});
+
+notes.addEventListener("input", () => {
+  notesDirty = true;
+  notesStatus.textContent = "Unsaved changes — click Save notes.";
+});
+
+document.getElementById("saveNotes").addEventListener("click", () => {
+  try {
+    localStorage.setItem(notesKey, notes.value);
+    notesDirty = false;
+    notesStatus.textContent = "Saved locally.";
+  } catch {
+    notesStatus.textContent = "Save failed. Copy your notes somewhere safe.";
+  }
+});
+
+document.addEventListener("click", event => {
+  if (event.target.closest("a") && notesDirty &&
+      !confirm("Your notes have unsaved changes. Leave anyway?")) {
+    event.preventDefault();
+  }
+});
+
+document.getElementById("clearData").addEventListener("click", () => {
+  if (!confirm("Delete this preview's saved shortcuts and notes?")) return;
+  try {
+    localStorage.removeItem(shortcutKey);
+    localStorage.removeItem(notesKey);
+    shortcuts = [];
+    notes.value = "";
+    notesDirty = false;
+    notesStatus.textContent = "";
+    render();
+    message("Preview data cleared.");
+  } catch { message("Data could not be completely cleared."); }
+});
+</script>
+</body>
+</html>
