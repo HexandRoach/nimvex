@@ -407,6 +407,13 @@ class Browser(QMainWindow):
         layout.addWidget(self.tabs, 1)
 
         self.setup_menu()
+        self.tools_closed_tabs = []
+        tools = self.browser_menu.addMenu("Tools Hub")
+        tools.addAction("Search open tabs…", self.tools_search_tabs)
+        reopen = tools.addAction("Reopen closed tab", self.reopen_closed_tab)
+        reopen.setShortcut(QKeySequence("Ctrl+Shift+T"))
+        tools.addAction("Find duplicate tabs…", self.tools_find_duplicates)
+        tools.addAction("Search bookmarks…", self.tools_search_bookmarks)
         self.setup_shortcuts()
         self.apply_theme()
         self.refresh_bookmarks()
@@ -451,9 +458,85 @@ class Browser(QMainWindow):
         self.sync_ui()
         return view
 
+
+    def reopen_closed_tab(self):
+        if self.tools_closed_tabs:
+            self.new_tab(QUrl(self.tools_closed_tabs.pop()))
+        else:
+            self.statusBar().showMessage("No closed website tabs to reopen.", 4000)
+
+    def tools_search_tabs(self):
+        from PySide6.QtWidgets import QDialog, QListWidget
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Search open tabs")
+        dialog.resize(600, 400)
+        layout = QVBoxLayout(dialog)
+        search = QLineEdit()
+        search.setPlaceholderText("Filter by title or URL")
+        listing = QListWidget()
+        views = [self.tabs.widget(i) for i in range(self.tabs.count())]
+        layout.addWidget(search)
+        layout.addWidget(listing)
+        for view in views:
+            listing.addItem((view.title() or "New tab") + " — " + view.url().toString())
+        def filter_items(text):
+            for i in range(listing.count()):
+                listing.item(i).setHidden(text.casefold() not in listing.item(i).text().casefold())
+        def activate(item):
+            view = views[listing.row(item)]
+            index = self.tabs.indexOf(view)
+            if index >= 0:
+                self.tabs.setCurrentIndex(index)
+            dialog.accept()
+        search.textChanged.connect(filter_items)
+        listing.itemActivated.connect(activate)
+        dialog.exec()
+
+    def tools_search_bookmarks(self):
+        from PySide6.QtWidgets import QDialog, QListWidget
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Search bookmarks")
+        dialog.resize(600, 400)
+        layout = QVBoxLayout(dialog)
+        search = QLineEdit()
+        search.setPlaceholderText("Filter by name or URL")
+        listing = QListWidget()
+        bookmarks = list(self.bookmarks)
+        layout.addWidget(search)
+        layout.addWidget(listing)
+        for bookmark in bookmarks:
+            listing.addItem(bookmark["title"] + " — " + bookmark["url"])
+        def filter_items(text):
+            for i in range(listing.count()):
+                listing.item(i).setHidden(text.casefold() not in listing.item(i).text().casefold())
+        def activate(item):
+            url = QUrl(bookmarks[listing.row(item)]["url"])
+            if url.scheme() in ("http", "https"):
+                self.new_tab(url)
+                dialog.accept()
+        search.textChanged.connect(filter_items)
+        listing.itemActivated.connect(activate)
+        dialog.exec()
+
+    def tools_find_duplicates(self):
+        groups = {}
+        for i in range(self.tabs.count()):
+            view = self.tabs.widget(i)
+            if view.url().scheme() in ("http", "https"):
+                groups.setdefault(view.url().toString(), []).append(i + 1)
+        duplicates = [(url, tabs) for url, tabs in groups.items() if len(tabs) > 1]
+        text = "\n\n".join(
+            "Tabs " + ", ".join(map(str, tabs)) + "\n" + url
+            for url, tabs in duplicates
+        ) or "No duplicate website URLs found."
+        QMessageBox.information(self, "Duplicate tabs — exact URLs", text)
+
     def close_tab(self, index):
         view = self.tabs.widget(index)
         if view:
+            if view.url().scheme() in ("http", "https"):
+                self.tools_closed_tabs.append(view.url().toString())
+                self.tools_closed_tabs = self.tools_closed_tabs[-30:]
             view.stop()
             self.tabs.removeTab(index)
             view.deleteLater()
