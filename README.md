@@ -21,7 +21,7 @@ Official releases are free to use under [License](License). Modification and red
 
 [Report a problem](https://github.com/HexandRoach/nimvex/issues)
 
-## Mobile Preview — iPhone, iPad & Android
+## Mobile Preview — iPhone, iPad & Android -- Work in Progress
 
 [Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
 
