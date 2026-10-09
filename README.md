@@ -78,3 +78,36 @@ the steps to reproduce it, and any relevant error messages.
 Official releases are free to use under [License](License). Modification
 and redistribution require permission, subject to the license and
 applicable law.
+
+## Windows Preview — Work in Progress
+
+[Download Nimvex Windows x64 Preview — GitHub Actions](https://github.com/HexandRoach/nimvex/actions/runs/37881693797)
+
+On the build summary page, select `Nimvex-Windows-x64-preview` under
+Artifacts. You must be signed into GitHub with access to this repository.
+
+This is a temporary build-artifact download, not a published release.
+The workflow is configured to retain its artifact for 14 days.
+A release download link will replace this link after publication.
+
+### Build and testing status
+
+The Windows package built successfully on GitHub Actions.
+Windows startup, browsing, downloads, and saved-data persistence
+have not yet been verified.
+
+### Running the preview
+
+1. Download and extract the GitHub artifact archive.
+2. Extract the `Nimvex-Windows-x64-preview.zip` inside it.
+3. Open `Nimvex.exe` from the extracted `Nimvex` folder.
+4. Keep all supporting files with the executable.
+
+### Current limitations
+
+- Experimental, unsigned Windows x64 build.
+- Windows runtime testing is pending.
+- No automatic update installation.
+- Updates require downloading a newer Windows package.
+- The preview uses the committed desktop source, not unfinished
+  local development changes.
