@@ -32,6 +32,8 @@ Do not assume they are included in the downloadable RPM above.
 
 System tray integration has been removed.
 
+
+
 ## Mobile Preview — iPhone, iPad & Android — Work in Progress
 
 [Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
