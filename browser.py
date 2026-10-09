@@ -414,6 +414,11 @@ class Browser(QMainWindow):
         reopen.setShortcut(QKeySequence("Ctrl+Shift+T"))
         tools.addAction("Find duplicate tabs…", self.tools_find_duplicates)
         tools.addAction("Search bookmarks…", self.tools_search_bookmarks)
+        tools.addAction("Sidebar notes…", self.tools_open_notes)
+        workspaces = tools.addMenu("Workspaces")
+        workspaces.addAction("Save current tabs…", self.tools_save_workspace)
+        workspaces.addAction("Open workspace…", self.tools_open_workspace)
+        workspaces.addAction("Delete workspace…", self.tools_delete_workspace)
         self.setup_shortcuts()
         self.apply_theme()
         self.refresh_bookmarks()
@@ -458,6 +463,214 @@ class Browser(QMainWindow):
         self.sync_ui()
         return view
 
+
+
+    def tools_open_notes(self):
+        from PySide6.QtWidgets import QDockWidget, QTextEdit
+
+        if not hasattr(self, "tools_notes_dock"):
+            directory = Path(QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.AppDataLocation
+            ))
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+                path = directory / "tools-notes.txt"
+                text = path.read_text(encoding="utf-8") if path.exists() else ""
+            except (OSError, UnicodeError) as error:
+                QMessageBox.warning(self, "Notes could not be opened", str(error))
+                return
+
+            dock = QDockWidget("Notes — stored locally", self)
+            editor = QTextEdit()
+            editor.setAcceptRichText(False)
+            editor.setPlaceholderText("Your notes save locally. Do not store passwords here.")
+            editor.setPlainText(text)
+            dock.setWidget(editor)
+            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+            self.tools_notes_dock = dock
+            self.tools_notes_editor = editor
+            self.tools_notes_path = path
+            self.tools_notes_dirty = False
+
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.setInterval(700)
+            timer.timeout.connect(self.tools_save_notes)
+            self.tools_notes_save_timer = timer
+
+            def changed():
+                self.tools_notes_dirty = True
+                dock.setWindowTitle("Notes — unsaved")
+                timer.start()
+
+            editor.textChanged.connect(changed)
+
+        self.tools_notes_dock.show()
+        self.tools_notes_dock.raise_()
+        self.tools_notes_editor.setFocus()
+
+    def tools_save_notes(self):
+        if not getattr(self, "tools_notes_dirty", False):
+            return True
+
+        path = self.tools_notes_path
+        temporary = path.with_suffix(".tmp")
+        try:
+            temporary.write_text(
+                self.tools_notes_editor.toPlainText(), encoding="utf-8"
+            )
+            temporary.replace(path)
+        except OSError as error:
+            self.tools_notes_dock.setWindowTitle("Notes — save failed")
+            self.statusBar().showMessage("Notes save failed: " + str(error), 10000)
+            return False
+
+        self.tools_notes_dirty = False
+        self.tools_notes_dock.setWindowTitle("Notes — saved locally")
+        return True
+
+
+
+
+
+
+
+    def tools_workspace_path(self):
+        directory = Path(QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.AppDataLocation
+        ))
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory / "workspaces.json"
+
+    def tools_read_workspaces(self):
+        path = self.tools_workspace_path()
+        if not path.exists():
+            return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("Workspace file has an unexpected format.")
+        for name, urls in data.items():
+            if (
+                not isinstance(name, str)
+                or not isinstance(urls, list)
+                or not all(isinstance(url, str) for url in urls)
+            ):
+                raise ValueError("Workspace file contains invalid entries.")
+        return data
+
+    def tools_write_workspaces(self, data):
+        path = self.tools_workspace_path()
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding="utf-8"
+        )
+        temporary.replace(path)
+
+    def tools_save_workspace(self):
+        urls = []
+        for i in range(self.tabs.count()):
+            view = self.tabs.widget(i)
+            if (
+                not view.page().profile().isOffTheRecord()
+                and view.url().scheme() in ("http", "https")
+            ):
+                urls.append(view.url().toString())
+
+        if not urls:
+            QMessageBox.information(
+                self, "Save workspace",
+                "There are no regular website tabs to save."
+            )
+            return
+
+        name, accepted = QInputDialog.getText(
+            self, "Save workspace",
+            "Workspace name:\\nWebsite URLs will be saved locally as plaintext."
+        )
+        if not accepted or not name.strip():
+            return
+        name = name.strip()
+
+        try:
+            data = self.tools_read_workspaces()
+            if name in data:
+                answer = QMessageBox.question(
+                    self, "Replace workspace?",
+                    f"Replace the saved workspace '{name}'?",
+                    QMessageBox.StandardButton.Yes |
+                    QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if answer != QMessageBox.StandardButton.Yes:
+                    return
+            data[name] = urls
+            self.tools_write_workspaces(data)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Workspace not saved", str(error))
+            return
+
+        self.statusBar().showMessage(
+            f"Saved workspace: {name} ({len(urls)} tabs)", 6000
+        )
+
+    def tools_choose_workspace(self, title):
+        data = self.tools_read_workspaces()
+        if not data:
+            QMessageBox.information(self, title, "No saved workspaces.")
+            return data, None
+        name, accepted = QInputDialog.getItem(
+            self, title, "Workspace:", sorted(data), 0, False
+        )
+        return data, name if accepted else None
+
+    def tools_open_workspace(self):
+        try:
+            data, name = self.tools_choose_workspace("Open workspace")
+            if name is None:
+                return
+            urls = [
+                QUrl(url) for url in data[name]
+                if QUrl(url).isValid()
+                and QUrl(url).scheme() in ("http", "https")
+            ]
+            if not urls:
+                QMessageBox.information(
+                    self, "Open workspace", "No valid website URLs to open."
+                )
+                return
+            answer = QMessageBox.question(
+                self, "Open workspace",
+                f"Open {len(urls)} tabs from '{name}'?\\n"
+                "Existing tabs will stay open. Websites will load immediately.",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                for url in urls:
+                    self.new_tab(url)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Workspace could not be opened", str(error))
+
+    def tools_delete_workspace(self):
+        try:
+            data, name = self.tools_choose_workspace("Delete workspace")
+            if name is None:
+                return
+            answer = QMessageBox.question(
+                self, "Delete workspace",
+                f"Delete saved workspace '{name}'? Open tabs will stay open.",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                del data[name]
+                self.tools_write_workspaces(data)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Workspace could not be deleted", str(error))
 
     def reopen_closed_tab(self):
         if self.tools_closed_tabs:
@@ -1038,6 +1251,16 @@ class TrayBrowser(GamingBrowser):
                 self,
                 "Update operation running",
                 "Wait for the update operation to finish before closing Nimvex."
+            )
+            return
+
+        if not self.tools_save_notes():
+            event.ignore()
+            QMessageBox.warning(
+                self,
+                "Notes not saved",
+                "Nimvex stayed open because your notes could not be saved. "
+                "Copy them somewhere safe before trying again."
             )
             return
 
