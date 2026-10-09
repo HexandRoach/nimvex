@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QSystemTrayIcon, QStyle
+from PySide6.QtWidgets import QStyle
 import base64
 from time import monotonic
 from PySide6.QtCore import QTimer
@@ -932,43 +932,35 @@ class TrayBrowser(GamingBrowser):
             )
         self.setWindowIcon(icon)
 
-        self.tray_icon = QSystemTrayIcon(icon, self)
-        self.tray_icon.setToolTip("Nimvex")
+    def updater_is_busy(self):
+        updater = getattr(self, "updater", None)
+        if updater is None:
+            return False
 
-        self.tray_menu = QMenu(self)
-        self.tray_menu.addAction("Open Nimvex", self.restore_from_tray)
-        self.tray_menu.addSeparator()
-        self.tray_menu.addAction("Quit Nimvex", self.quit_application)
+        # Packaged RPM updater.
+        if getattr(updater, "process", None) is not None:
+            return True
 
-        self.tray_icon.setContextMenu(self.tray_menu)
-        self.tray_icon.activated.connect(self.tray_activated)
-        self.tray_icon.show()
-
-    def restore_from_tray(self):
-        self.showNormal()
-        self.raise_()
-        self.activateWindow()
-
-    def tray_activated(self, reason):
-        if reason in (
-            QSystemTrayIcon.ActivationReason.Trigger,
-            QSystemTrayIcon.ActivationReason.DoubleClick,
-        ):
-            self.restore_from_tray()
+        # Development Git updater.
+        job = getattr(updater, "job", None)
+        return job is not None and job.isRunning()
 
     def quit_application(self):
-        self.tray_icon.hide()
-        QApplication.instance().quit()
+        self.close()
 
     def closeEvent(self, event):
-        if (
-            QSystemTrayIcon.isSystemTrayAvailable()
-            and self.tray_icon.isVisible()
-        ):
+        if self.updater_is_busy():
             event.ignore()
-            self.hide()
-        else:
-            super().closeEvent(event)
+            QMessageBox.information(
+                self,
+                "Update operation running",
+                "Wait for the update operation to finish before closing Nimvex."
+            )
+            return
+
+        super().closeEvent(event)
+        if event.isAccepted():
+            QApplication.instance().quit()
 
 
 app = QApplication(["nimvex", *sys.argv[1:]])
