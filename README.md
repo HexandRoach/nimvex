@@ -34,6 +34,67 @@ System tray integration has been removed.
 
 
 
+## Bookmark import and management
+
+The development source includes experimental bookmark migration and
+bookmark management.
+
+### Import from another browser
+
+Open the Nimvex menu and select “Import browser data…”.
+
+The searchable browser selector groups browsers alphabetically and
+attempts to detect local profiles for:
+
+- Brave
+- Chromium
+- Firefox
+- Google Chrome
+- LibreWolf
+- Microsoft Edge
+- Opera
+- Opera GX
+- Vivaldi
+- Waterfox
+- Zen Browser
+
+Detection checks configured standard Linux and Windows locations,
+including selected Flatpak and Snap installations. Custom profile
+locations may require manual folder selection.
+
+Choose a profile, review the import preview, and confirm before saving.
+Existing Nimvex bookmarks are retained, exact duplicate URLs are
+skipped, and a backup is saved before the bookmark file is changed.
+
+An exported bookmark HTML file can also be selected as a fallback.
+
+### Manage and delete bookmarks
+
+Open the Nimvex menu and select “Manage bookmarks…”.
+
+Search by title or URL, select one or more bookmarks, and choose
+“Delete selected…”. Deletion requires confirmation and creates a
+backup before saving. It changes Nimvex bookmarks only, not the
+source browser's bookmarks.
+
+### Current limitations and testing status
+
+- Bookmarks only; passwords, history, cookies, extensions, and signed-in
+  sessions are not imported.
+- Only HTTP and HTTPS bookmark URLs are accepted.
+- Folder hierarchy is flattened into Nimvex's bookmark list.
+- Duplicate matching uses exact URL strings.
+- The importer caps the resulting list at 2,000 bookmarks.
+- HTML exports must be UTF-8 and no larger than 5 MiB.
+- Browser-specific detection and readers are experimental.
+- Syntax checks have passed; end-to-end testing across all listed
+  browsers and operating systems is pending.
+
+These are development-source features. Existing RPM packages and older
+Windows preview artifacts are not updated by this documentation change.
+The Windows build configuration includes the importer for subsequent
+builds; each new build still requires verification.
+
 ## Mobile Preview — iPhone, iPad & Android — Work in Progress
 
 [Open Nimvex Mobile Preview](https://hexandroach.github.io/nimvex/mobile/)
