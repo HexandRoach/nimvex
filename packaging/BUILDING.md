@@ -1,36 +1,40 @@
-# Local RPM test build
+# Local RPM builds
 
-Initial target: Nobara 44 KDE on x86_64.
+Target: Nobara 44 KDE on x86_64.
 
-The spec uses a source archive named nimvex-0.0.0.tar.gz.
-The archive contains a top-level nimvex-0.0.0 directory with:
+Build from a committed Git reference:
 
-- browser.py
-- assets/HexandRoach.png
-- assets/nimvex-logo.svg
-- assets/nimvex.png
-- assets/nimvex-installer-art.svg
-- License
-- nimvex.desktop
-- nimvex
+    /usr/bin/python3 packaging/build-rpm.py --ref HEAD --release 3
 
-The packaged browser.py replaces the source Git updater startup with
-an About updates action explaining that updates require a newer RPM.
+The script reads package sources from the selected commit, not from
+uncommitted browser changes. Commit packaging changes before building.
 
-The nimvex launcher executes:
+The source archive contains the committed browser, RPM updater,
+bookmark importer, project assets, license, desktop entry, launcher,
+repository configuration, and public signing key.
+
+The packaged browser uses nimvex_rpm_updater instead of the development
+Git updater. The launcher executes:
+
     /usr/bin/python3 /usr/share/nimvex/browser.py
 
-Build tools include rpmbuild, python3-devel, and desktop-file-utils.
-Runtime requirements are recorded in nimvex.spec.
+Artifacts are created in a separate directory under
+~/Projects/nimvex-builds. The script prints the exact output directory.
 
-The initial build used version 0.0.0 and release 0.1.test.
-This is a local test version, not a stable release.
+The build produces an unsigned binary RPM, source RPM, ZIP, and manifest.
+It installs nothing and publishes nothing.
 
-The spec is saved here, but automated source-archive generation still
-needs to be added. Do not build directly from an unmodified source
-browser.py: the Git updater must be disabled in the packaged copy.
+Before release:
+1. Verify package identity and payload.
+2. Sign the RPM with the official release key.
+3. Verify the signature.
+4. Test installation, launch, bookmark import, deletion, and persistence.
+5. Publish the signed RPM and regenerate and sign repository metadata.
+6. Update download documentation after deployment is verified.
 
-Build success does not establish installability or browser correctness.
-Test graphical installation, clean-system dependency resolution,
-application-menu launch, icons, downloads, tray behavior, and updates
-before claiming support.
+Signing changes RPM bytes. ZIPs and SHA-256 manifests produced before
+signing must be regenerated if they will be distributed with signed RPMs.
+
+A successful build is not proof of runtime correctness or clean-system
+dependency resolution. Existing downloads remain unchanged until
+publication.
