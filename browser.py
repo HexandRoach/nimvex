@@ -936,6 +936,13 @@ class Browser(QMainWindow):
     def setup_menu(self):
         self.browser_menu.addAction("New tab", lambda: self.new_tab())
         self.browser_menu.addAction("Bookmark this page", self.toggle_bookmark)
+        from nimvex_importer import import_bookmarks, manage_bookmarks
+        self.browser_menu.addAction(
+            "Import browser data…", lambda: import_bookmarks(self)
+        )
+        self.browser_menu.addAction(
+            "Manage bookmarks…", lambda: manage_bookmarks(self)
+        )
 
         show_bar = self.browser_menu.addAction("Show bookmarks toolbar")
         show_bar.setCheckable(True)

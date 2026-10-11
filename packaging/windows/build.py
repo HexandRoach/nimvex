@@ -34,6 +34,14 @@ def main():
         entry = work / "browser.py"
         entry.write_text(source, encoding="utf-8")
 
+        importer_source = subprocess.check_output(
+            ["git", "show", "HEAD:nimvex_importer.py"], cwd=ROOT
+        ).decode("utf-8")
+        ast.parse(importer_source)
+        (work / "nimvex_importer.py").write_text(
+            importer_source, encoding="utf-8"
+        )
+
         (work / "windows_updates.py").write_text(
             'from PySide6.QtCore import QUrl\n'
             'from PySide6.QtGui import QDesktopServices\n'

@@ -67,3 +67,7 @@ Session Storage/
 
 # Local updater backups
 nimvex_updater.py.backup-*
+
+# Importer backups and Windows build output
+nimvex_importer.py.backup-*
+/windows-output/
