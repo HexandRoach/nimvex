@@ -1,6 +1,6 @@
 Name:           nimvex
 Version:        0.1.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Nimvex web browser
 License:        LicenseRef-Nimvex
 Source0:        %{name}-%{version}.tar.gz
@@ -46,6 +46,9 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/nimvex.desktop
 %{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-nimvex
 
 %changelog
+* Tue Oct 13 2026 HexandRoach <Hexandroach@protonmail.com> - 0.1.0-4
+- Change default address-bar search from Startpage to Google.
+
 * Sun Oct 11 2026 HexandRoach <Hexandroach@protonmail.com> - 0.1.0-3
 - Include experimental browser bookmark import and profile detection.
 - Include searchable bookmark management with confirmed deletion and backups.

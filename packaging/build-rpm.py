@@ -19,7 +19,7 @@ def run(*args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ref", default="HEAD")
-    parser.add_argument("--release", default="3")
+    parser.add_argument("--release", default="4")
     args = parser.parse_args()
 
     if not re.fullmatch(r"[0-9]+(?:\.[A-Za-z0-9]+)*", args.release):

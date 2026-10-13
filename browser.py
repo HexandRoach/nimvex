@@ -815,9 +815,9 @@ class Browser(QMainWindow):
             "." not in text and "://" not in text
             and not text.startswith(("localhost", "about:"))
         ):
-            url = QUrl("https://www.startpage.com/sp/search")
+            url = QUrl("https://www.google.com/search")
             query = QUrlQuery()
-            query.addQueryItem("query", text)
+            query.addQueryItem("q", text)
             url.setQuery(query)
         else:
             if "://" not in text and not text.startswith("about:"):
