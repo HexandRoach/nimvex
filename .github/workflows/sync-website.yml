@@ -1,56 +1,79 @@
-name: Sync website project data
+name: Sync website release
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: nimvex-website-sync
+  group: nimvex-website-release-sync
   cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Nimvex
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Read Nimvex release information
-        id: release
-        run: |
-          version="$(sed -n 's/^Version:[[:space:]]*//p' packaging/nimvex.spec | head -n1 | tr -d '[:space:]')"
-          release="$(sed -n 's/^Release:[[:space:]]*//p' packaging/nimvex.spec | head -n1 | sed 's/%{?dist}//; s/[[:space:]]*$//')"
-          test -n "$version"
-          test -n "$release"
-          printf 'version=%s-%s\n' "$version" "$release" >> "$GITHUB_OUTPUT"
-          printf 'updated=%s\n' "$(date -u +%F)" >> "$GITHUB_OUTPUT"
-
       - name: Check out website repository
         uses: actions/checkout@v4
         with:
-          repository: HexandRoach/hexandroach-site
+          repository: HexandRoach/linux-game-compatibility-guide
           token: ${{ secrets.WEBSITE_SYNC_TOKEN }}
           path: website
           fetch-depth: 1
 
+      - name: Read release and RPM download information
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_ASSETS: ${{ toJSON(github.event.release.assets) }}
+        run: |
+          rpm_url="$(printf '%s' "$RELEASE_ASSETS" | jq -r '
+            [.[] | select(.name | test("\\.rpm$"; "i"))][0].browser_download_url // empty
+          ')"
+
+          if [ -z "$rpm_url" ]; then
+            echo "No .rpm asset was attached to this release." >&2
+            exit 1
+          fi
+
+          rpm_name="$(basename "$rpm_url")"
+          version="$(sed -nE 's/^nimvex-([^-]+-[0-9]+)\..*$/\1/p' <<<"$rpm_name")"
+
+          if [ -z "$version" ]; then
+            echo "Could not determine the Nimvex version from: $rpm_name" >&2
+            exit 1
+          fi
+
+          {
+            printf 'version=%s\n' "$version"
+            printf 'rpm_url=%s\n' "$rpm_url"
+            printf 'release_url=%s\n' "$RELEASE_URL"
+            printf 'updated=%s\n' "$(date -u +%F)"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Update Nimvex website data
+        working-directory: website
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          RPM_URL: ${{ steps.release.outputs.rpm_url }}
+          RELEASE_URL: ${{ steps.release.outputs.release_url }}
+          UPDATED: ${{ steps.release.outputs.updated }}
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
 
-          path = Path("website/data/projects/nimvex.json")
+          path = Path("data/projects/nimvex.json")
           data = json.loads(path.read_text(encoding="utf-8"))
-          data["version"] = "${{ steps.release.outputs.version }}"
-          data["updated"] = "${{ steps.release.outputs.updated }}"
-          data["default_search"] = "Google"
+          data["version"] = "${{ env.VERSION }}"
+          data["rpm_url"] = "${{ env.RPM_URL }}"
+          data["release_url"] = "${{ env.RELEASE_URL }}"
+          data["updated"] = "${{ env.UPDATED }}"
           path.write_text(
               json.dumps(data, indent=2, ensure_ascii=False) + "\n",
               encoding="utf-8",
@@ -65,9 +88,9 @@ jobs:
           git add data/projects/nimvex.json
 
           if git diff --cached --quiet; then
-              echo "Website project data is already current."
+              echo "Website release data is already current."
               exit 0
           fi
 
-          git commit -m "Sync Nimvex project data from GitHub"
+          git commit -m "Update Nimvex release: ${{ steps.release.outputs.version }}"
           git push
