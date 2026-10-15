@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nimvex-website-release-sync
+  group: website-release-sync
   cancel-in-progress: false
 
 jobs:
@@ -25,42 +25,53 @@ jobs:
           path: website
           fetch-depth: 1
 
-      - name: Read release and RPM download information
+      - name: Read GitHub project information
+        id: project
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          description="$(gh api "repos/$GITHUB_REPOSITORY" --jq '.description // ""')"
+          {
+            printf 'description=%s\n' "$description"
+            printf 'slug=%s\n' "${GITHUB_REPOSITORY##*/}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Determine release download
         id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
           RELEASE_ASSETS: ${{ toJSON(github.event.release.assets) }}
         run: |
-          rpm_url="$(printf '%s' "$RELEASE_ASSETS" | jq -r '
-            [.[] | select(.name | test("\\.rpm$"; "i"))][0].browser_download_url // empty
-          ')"
+          download_url="$(printf '%s' "$RELEASE_ASSETS" | jq -r '
+            [
+              .[]
+              | select(.name | test("\\.(rpm|appimage)$"; "i"))
+              | select(.name | test("\\.sig$"; "i") | not)
+            ][0].browser_download_url // empty
+          ']"
 
-          if [ -z "$rpm_url" ]; then
-            echo "No .rpm asset was attached to this release." >&2
+          if [ -z "$download_url" ]; then
+            echo "No RPM or AppImage asset was attached to this release." >&2
             exit 1
           fi
 
-          rpm_name="$(basename "$rpm_url")"
-          version="$(sed -nE 's/^nimvex-([^-]+-[0-9]+)\..*$/\1/p' <<<"$rpm_name")"
-
-          if [ -z "$version" ]; then
-            echo "Could not determine the Nimvex version from: $rpm_name" >&2
-            exit 1
-          fi
+          file_name="$(basename "$download_url")"
 
           {
-            printf 'version=%s\n' "$version"
-            printf 'rpm_url=%s\n' "$rpm_url"
+            printf 'download_url=%s\n' "$download_url"
             printf 'release_url=%s\n' "$RELEASE_URL"
             printf 'updated=%s\n' "$(date -u +%F)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Update Nimvex website data
+      - name: Update project release data
         working-directory: website
         env:
-          VERSION: ${{ steps.release.outputs.version }}
-          RPM_URL: ${{ steps.release.outputs.rpm_url }}
+          SLUG: ${{ steps.project.outputs.slug }}
+          DESCRIPTION: ${{ steps.project.outputs.description }}
+          NOTES: ${{ github.event.release.body }}
+          VERSION: ${{ github.event.release.tag_name }}
+          DOWNLOAD_URL: ${{ steps.release.outputs.download_url }}
           RELEASE_URL: ${{ steps.release.outputs.release_url }}
           UPDATED: ${{ steps.release.outputs.updated }}
         run: |
@@ -68,12 +79,21 @@ jobs:
           import json
           from pathlib import Path
 
-          path = Path("data/projects/nimvex.json")
+          slug = "${{ env.SLUG }}"
+          path = Path(f"data/projects/{slug}.json")
           data = json.loads(path.read_text(encoding="utf-8"))
-          data["version"] = "${{ env.VERSION }}"
-          data["rpm_url"] = "${{ env.RPM_URL }}"
+
+          data["description"] = "${{ env.DESCRIPTION }}" or data.get("description", "")
+          data["notes"] = "${{ env.NOTES }}"
+          data["version"] = "${{ env.VERSION }}".removeprefix("v")
+          data["download_url"] = "${{ env.DOWNLOAD_URL }}"
           data["release_url"] = "${{ env.RELEASE_URL }}"
           data["updated"] = "${{ env.UPDATED }}"
+
+          download_name = Path("${{ env.DOWNLOAD_URL }}").name
+          if download_name.startswith("rhex_"):
+              data["version"] = download_name.removeprefix("rhex_").removesuffix("_amd64.AppImage")
+
           path.write_text(
               json.dumps(data, indent=2, ensure_ascii=False) + "\n",
               encoding="utf-8",
@@ -83,14 +103,14 @@ jobs:
       - name: Commit and push website update
         working-directory: website
         run: |
-          git config user.name "nimvex-website-sync"
+          git config user.name "website-release-sync"
           git config user.email "actions@users.noreply.github.com"
-          git add data/projects/nimvex.json
+          git add "data/projects/${{ steps.project.outputs.slug }}.json"
 
           if git diff --cached --quiet; then
-              echo "Website release data is already current."
-              exit 0
+            echo "Website release data is already current."
+            exit 0
           fi
 
-          git commit -m "Update Nimvex release: ${{ steps.release.outputs.version }}"
+          git commit -m "Update ${{ steps.project.outputs.slug }}: ${{ github.event.release.tag_name }}"
           git push
