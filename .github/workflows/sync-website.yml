@@ -1,0 +1,73 @@
+name: Sync website project data
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nimvex-website-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Nimvex
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Read Nimvex release information
+        id: release
+        run: |
+          version="$(sed -n 's/^Version:[[:space:]]*//p' packaging/nimvex.spec | head -n1 | tr -d '[:space:]')"
+          release="$(sed -n 's/^Release:[[:space:]]*//p' packaging/nimvex.spec | head -n1 | sed 's/%{?dist}//; s/[[:space:]]*$//')"
+          test -n "$version"
+          test -n "$release"
+          printf 'version=%s-%s\n' "$version" "$release" >> "$GITHUB_OUTPUT"
+          printf 'updated=%s\n' "$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out website repository
+        uses: actions/checkout@v4
+        with:
+          repository: HexandRoach/hexandroach-site
+          token: ${{ secrets.WEBSITE_SYNC_TOKEN }}
+          path: website
+          fetch-depth: 1
+
+      - name: Update Nimvex website data
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("website/data/projects/nimvex.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          data["version"] = "${{ steps.release.outputs.version }}"
+          data["updated"] = "${{ steps.release.outputs.updated }}"
+          data["default_search"] = "Google"
+          path.write_text(
+              json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Commit and push website update
+        working-directory: website
+        run: |
+          git config user.name "nimvex-website-sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/projects/nimvex.json
+
+          if git diff --cached --quiet; then
+              echo "Website project data is already current."
+              exit 0
+          fi
+
+          git commit -m "Sync Nimvex project data from GitHub"
+          git push
