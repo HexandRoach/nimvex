@@ -1,18 +1,48 @@
 # Nimvex
 
-A desktop web browser with Startpage search, tabs, bookmarks, downloads,
+A desktop web browser with Google search, tabs, bookmarks, downloads,
 and in-app update checking.
 
 Nimvex is developed for Nobara 44 KDE on x86_64.
 
 ## Desktop download
 
-[Download Nimvex 0.1.0-1 for Nobara 44 KDE](https://hexandroach.github.io/nimvex/rpm/nobara/44/x86_64/nimvex-0.1.0-1.fc44.noarch.rpm)
+The latest locally built and signed desktop package is
+`nimvex-0.1.0-5.fc44.noarch.rpm`, intended for Nobara 44 KDE on x86_64.
 
-This link points to the older 0.1.0-1 package. The repository's release
-history records a signed 0.1.0-2 update that removes system tray
-integration. The direct download link will be updated once the newer
-package URL is verified.
+[Download Nimvex 0.1.0-5 for Nobara 44 KDE](https://hexandroach.github.io/nimvex/rpm/nobara/44/x86_64/nimvex-0.1.0-5.fc44.noarch.rpm)
+
+This link targets the release-5 package in the official RPM repository.
+Public availability and fresh-system installation are not confirmed by
+this documentation update.
+
+After downloading the RPM, install it from its containing directory:
+
+```bash
+sudo dnf5 --setopt=localpkg_gpgcheck=True install ./nimvex-0.1.0-5.fc44.noarch.rpm
+```
+
+Review the transaction and signing-key identity before accepting any
+key import. Do not disable signature verification to bypass an error.
+
+### Release 0.1.0-5
+
+- Opens explicit website URLs supplied when Nimvex starts.
+- Improves address-bar handling for localhost addresses with ports.
+- Supports directly entered existing local-file paths and `file://` URLs.
+- Adds confirmation before dispatching supported external-app links.
+- Updates desktop integration to accept HTTP and HTTPS URLs.
+- Includes the link-support module in the RPM.
+
+Binary and source RPM signatures were verified locally against the
+existing Nimvex release signing key:
+
+```text
+45AE D3D9 14B9 0290 33DC AD1C 32F2 5E1C 2304 1BD9
+```
+
+Drag-to-detach is not included. The experimental implementation caused
+desktop freezes and was not promoted into the release source.
 
 ## Current development version
 
@@ -33,6 +63,50 @@ Do not assume they are included in the downloadable RPM above.
 System tray integration has been removed.
 
 
+
+## Links and external applications
+
+### Websites and startup URLs
+
+Nimvex handles HTTP and HTTPS addresses. Links requesting a new window
+use the existing new-tab handler.
+
+Launch Nimvex with an explicit URL:
+
+```bash
+nimvex 'https://example.com'
+```
+
+Multiple URL arguments open in separate tabs. This does not add
+single-instance routing into an already-running window.
+
+For a local development server, enter `http://localhost:8000` or
+`localhost:8000`. The server must already be running.
+
+### Local files
+
+Enter an existing absolute file path, a path beginning with `~/`, or a
+`file:///` URL directly in the address bar. Not every file format can be
+displayed. Website navigation to local files remains restricted.
+
+### External applications
+
+Recognized external schemes are `mailto:`, `tel:`, `sms:`, `magnet:`,
+`steam:`, and `discord:`.
+
+Nimvex asks for confirmation before dispatching these links to the
+desktop. A compatible application and desktop association are required.
+Dispatch does not guarantee the destination application completes the
+action. Unsupported schemes and non-click external navigation are not
+automatically launched. Scripted redirects and popup flows still need
+broader testing.
+
+### AI bots and automation
+
+Opening a URL and allowing a bot to read or control the page are separate
+capabilities. This release does not add a dedicated automation API or
+guarantee compatibility with Playwright, Selenium, or a particular bot.
+End-to-end testing with the reported third-party bot is pending.
 
 ## Bookmark import and management
 
