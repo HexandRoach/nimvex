@@ -3,9 +3,11 @@ Version=1.0
 Type=Application
 Name=Nimvex
 Comment=Browse the web with Nimvex
-Exec=nimvex
+Exec=nimvex %U
 Icon=nimvex
 Terminal=false
-Categories=Utility;
+Categories=Network;WebBrowser;
 StartupNotify=true
 StartupWMClass=nimvex
+
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;

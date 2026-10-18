@@ -19,7 +19,7 @@ def run(*args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ref", default="HEAD")
-    parser.add_argument("--release", default="4")
+    parser.add_argument("--release", default="5")
     args = parser.parse_args()
 
     if not re.fullmatch(r"[0-9]+(?:\.[A-Za-z0-9]+)*", args.release):
@@ -82,6 +82,9 @@ def main():
     importer = source("nimvex_importer.py")
     ast.parse(importer.decode("utf-8"))
     (stage / "nimvex_importer.py").write_bytes(importer)
+    links = source("nimvex_links.py")
+    ast.parse(links.decode("utf-8"))
+    (stage / "nimvex_links.py").write_bytes(links)
 
     paths = {
         "License": "License",
@@ -157,6 +160,7 @@ def main():
     required_payload = (
         "/usr/share/nimvex/nimvex_rpm_updater.py",
         "/usr/share/nimvex/nimvex_importer.py",
+        "/usr/share/nimvex/nimvex_links.py",
         "/etc/yum.repos.d/nimvex.repo",
         "/etc/pki/rpm-gpg/RPM-GPG-KEY-nimvex",
     )

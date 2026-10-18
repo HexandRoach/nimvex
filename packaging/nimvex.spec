@@ -1,6 +1,6 @@
 Name:           nimvex
 Version:        0.1.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Nimvex web browser
 License:        LicenseRef-Nimvex
 Source0:        %{name}-%{version}.tar.gz
@@ -25,7 +25,7 @@ Updates require user approval and system authorization.
 
 %install
 install -d %{buildroot}%{_datadir}/nimvex/assets
-install -m 0644 browser.py nimvex_rpm_updater.py nimvex_importer.py %{buildroot}%{_datadir}/nimvex/
+install -m 0644 browser.py nimvex_rpm_updater.py nimvex_importer.py nimvex_links.py %{buildroot}%{_datadir}/nimvex/
 install -m 0644 assets/* %{buildroot}%{_datadir}/nimvex/assets/
 install -D -m 0755 nimvex %{buildroot}%{_bindir}/nimvex
 install -D -m 0644 nimvex.desktop %{buildroot}%{_datadir}/applications/nimvex.desktop
@@ -46,6 +46,10 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/nimvex.desktop
 %{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-nimvex
 
 %changelog
+* Sun Oct 18 2026 HexandRoach <Hexandroach@protonmail.com> - 0.1.0-5
+- Handle startup URLs, local addresses, and confirmed external application links.
+- Register HTTP/HTTPS desktop URL handling and package the link-support module.
+
 * Tue Oct 13 2026 HexandRoach <Hexandroach@protonmail.com> - 0.1.0-4
 - Change default address-bar search from Startpage to Google.
 

@@ -1,3 +1,4 @@
+from nimvex_links import install_view, open_input, open_startup_links
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from PySide6.QtGui import QIcon
@@ -125,6 +126,7 @@ class WebView(QWebEngineView):
     def __init__(self, browser):
         super().__init__(browser.profile, browser)
         self.browser = browser
+        install_view(self)
         self.enable_video_fullscreen()
         # NIMVEX_CLIPBOARD_COPY_V1: allow user-triggered clipboard writes.
         from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -1015,29 +1017,7 @@ class Browser(QMainWindow):
         self.setWindowTitle(f"{view.title() or 'New tab'} — Nimvex")
 
     def navigate(self):
-        text = self.address.text().strip()
-        if not text:
-            return
-
-        if " " in text or (
-            "." not in text and "://" not in text
-            and not text.startswith(("localhost", "about:"))
-        ):
-            url = QUrl("https://www.google.com/search")
-            query = QUrlQuery()
-            query.addQueryItem("q", text)
-            url.setQuery(query)
-        else:
-            if "://" not in text and not text.startswith("about:"):
-                text = "https://" + text
-            url = QUrl.fromUserInput(text)
-
-        if url.scheme() not in ("https", "http", "about"):
-            self.statusBar().showMessage("Unsupported URL scheme.")
-            return
-
-        self.current_view().load(url)
-        self.current_view().setFocus()
+        open_input(self, self.address.text())
 
     def go_back(self):
         if self.current_view():
@@ -1497,4 +1477,5 @@ window = TrayBrowser()
 from nimvex_updater import Updater
 window.updater = Updater(window, Path(__file__).resolve().parent)
 window.show()
+QTimer.singleShot(0, lambda: open_startup_links(window, sys.argv[1:]))
 sys.exit(app.exec())
