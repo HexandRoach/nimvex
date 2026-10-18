@@ -34,13 +34,6 @@ key import. Do not disable signature verification to bypass an error.
 - Updates desktop integration to accept HTTP and HTTPS URLs.
 - Includes the link-support module in the RPM.
 
-Binary and source RPM signatures were verified locally against the
-existing Nimvex release signing key:
-
-```text
-45AE D3D9 14B9 0290 33DC AD1C 32F2 5E1C 2304 1BD9
-```
-
 Drag-to-detach is not included. The experimental implementation caused
 desktop freezes and was not promoted into the release source.
 
