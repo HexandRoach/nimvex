@@ -125,6 +125,22 @@ class WebView(QWebEngineView):
     def __init__(self, browser):
         super().__init__(browser.profile, browser)
         self.browser = browser
+        self.enable_video_fullscreen()
+        # NIMVEX_CLIPBOARD_COPY_V1: allow user-triggered clipboard writes.
+        from PySide6.QtWebEngineCore import QWebEngineSettings
+        self.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True
+        )
+
+    # NIMVEX_FULLSCREEN_V1
+    def enable_video_fullscreen(self):
+        from PySide6.QtWebEngineCore import QWebEngineSettings
+        self.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True
+        )
+        self.page().fullScreenRequested.connect(
+            lambda request: self.browser.handle_video_fullscreen(self, request)
+        )
 
     def createWindow(self, window_type):
         return self.browser.new_tab()
@@ -415,6 +431,12 @@ class Browser(QMainWindow):
         tools.addAction("Find duplicate tabs…", self.tools_find_duplicates)
         tools.addAction("Search bookmarks…", self.tools_search_bookmarks)
         tools.addAction("Sidebar notes…", self.tools_open_notes)
+        self.tools_session_action = tools.addAction(
+            "Save tab URLs for session recovery"
+        )
+        self.tools_session_action.setCheckable(True)
+        self.tools_session_action.toggled.connect(self.tools_session_toggle)
+        QTimer.singleShot(0, self.tools_session_init)
         workspaces = tools.addMenu("Workspaces")
         workspaces.addAction("Save current tabs…", self.tools_save_workspace)
         workspaces.addAction("Open workspace…", self.tools_open_workspace)
@@ -423,6 +445,45 @@ class Browser(QMainWindow):
         self.apply_theme()
         self.refresh_bookmarks()
         self.new_tab()
+
+    def handle_video_fullscreen(self, view, request):
+        if request.toggleOn():
+            if view is not self.current_view() or getattr(self, "video_fullscreen_view", None) is not None:
+                request.reject()
+                return
+            self.video_fullscreen_view = view
+            self.video_previous_state = self.windowState()
+            widgets = [self.tabs.header, self.bookmark_bar.parentWidget(), self.statusBar()]
+            self.video_chrome = [(widget, widget.isHidden()) for widget in widgets]
+            if not hasattr(self, "video_escape_action"):
+                self.video_escape_action = QAction("Exit video fullscreen", self)
+                self.video_escape_action.setShortcut(QKeySequence("Esc"))
+                self.video_escape_action.triggered.connect(self.exit_video_fullscreen)
+                self.addAction(self.video_escape_action)
+            self.video_escape_action.setEnabled(True)
+            request.accept()
+            for widget, hidden in self.video_chrome:
+                widget.hide()
+            self.showFullScreen()
+        else:
+            request.accept()
+            self.restore_video_window()
+
+    def exit_video_fullscreen(self):
+        view = getattr(self, "video_fullscreen_view", None)
+        if view is not None:
+            view.page().triggerAction(QWebEnginePage.WebAction.ExitFullScreen)
+            self.restore_video_window()
+
+    def restore_video_window(self):
+        if getattr(self, "video_fullscreen_view", None) is None:
+            return
+        self.video_fullscreen_view = None
+        self.video_escape_action.setEnabled(False)
+        self.setWindowState(self.video_previous_state)
+        for widget, hidden in self.video_chrome:
+            widget.setVisible(not hidden)
+        self.video_chrome = []
 
     def button(self, text, tooltip, callback):
         button = QToolButton()
@@ -570,6 +631,7 @@ class Browser(QMainWindow):
 
     def tools_save_workspace(self):
         urls = []
+        active = 0
         for i in range(self.tabs.count()):
             view = self.tabs.widget(i)
             if (
@@ -672,6 +734,151 @@ class Browser(QMainWindow):
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Workspace could not be deleted", str(error))
 
+
+    def tools_session_file(self):
+        directory = Path(QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.AppDataLocation
+        ))
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory / "tab-session.json"
+
+    def tools_session_write(self, data):
+        from PySide6.QtCore import QSaveFile, QIODevice
+
+        file = QSaveFile(str(self.tools_session_file()))
+        if not file.open(QIODevice.OpenModeFlag.WriteOnly):
+            raise OSError(file.errorString())
+        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        if file.write(payload) != len(payload):
+            file.cancelWriting()
+            raise OSError(file.errorString())
+        if not file.commit():
+            raise OSError(file.errorString())
+
+    def tools_session_init(self):
+        self.tools_session_enabled = False
+        self.tools_session_timer = QTimer(self)
+        self.tools_session_timer.setInterval(5000)
+        self.tools_session_timer.timeout.connect(self.tools_session_snapshot)
+
+        try:
+            path = self.tools_session_file()
+            data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+            if not isinstance(data, dict):
+                raise ValueError("Invalid session file.")
+            urls = data.get("urls", [])
+            if not isinstance(urls, list) or not all(
+                isinstance(url, str) for url in urls
+            ):
+                raise ValueError("Invalid saved tab URLs.")
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(
+                self, "Session recovery unavailable",
+                str(error) + "\nThe existing session file was not overwritten."
+            )
+            self.tools_session_action.setEnabled(False)
+            return
+
+        self.tools_session_enabled = data.get("enabled") is True
+        self.tools_session_action.blockSignals(True)
+        self.tools_session_action.setChecked(self.tools_session_enabled)
+        self.tools_session_action.blockSignals(False)
+
+        if not self.tools_session_enabled:
+            return
+
+        urls = [
+            url for url in urls
+            if QUrl(url).isValid() and QUrl(url).scheme() in ("http", "https")
+        ]
+        if urls:
+            title = (
+                "Restore previous session"
+                if data.get("clean") is True else
+                "Recover tabs after an unclean exit"
+            )
+            answer = QMessageBox.question(
+                self, title,
+                f"Reopen {len(urls)} saved website tabs?\n"
+                "They will load immediately. No declines restoring these tabs.",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                start = self.tabs.count()
+                for url in urls:
+                    self.new_tab(QUrl(url))
+                active = data.get("active", 0)
+                if type(active) is not int or not 0 <= active < len(urls):
+                    active = 0
+                self.tabs.setCurrentIndex(start + active)
+
+        self.tools_session_snapshot()
+        self.tools_session_timer.start()
+
+    def tools_session_toggle(self, enabled):
+        if not hasattr(self, "tools_session_timer"):
+            return
+
+        if enabled:
+            answer = QMessageBox.question(
+                self, "Enable session recovery?",
+                "Save regular website tab URLs locally as plaintext?\n"
+                "They may contain private information. Off-the-record tabs "
+                "are excluded. A restore prompt appears on startup.",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self.tools_session_action.blockSignals(True)
+                self.tools_session_action.setChecked(False)
+                self.tools_session_action.blockSignals(False)
+                return
+
+        try:
+            if not enabled:
+                self.tools_session_write({
+                    "enabled": False, "clean": True, "urls": []
+                })
+            self.tools_session_enabled = enabled
+            if enabled:
+                self.tools_session_snapshot()
+                self.tools_session_timer.start()
+            else:
+                self.tools_session_timer.stop()
+        except OSError as error:
+            self.tools_session_action.blockSignals(True)
+            self.tools_session_action.setChecked(self.tools_session_enabled)
+            self.tools_session_action.blockSignals(False)
+            QMessageBox.warning(self, "Session setting not saved", str(error))
+
+    def tools_session_snapshot(self, clean=False):
+        if not getattr(self, "tools_session_enabled", False):
+            return
+        urls = []
+        active = 0
+        for i in range(self.tabs.count()):
+            view = self.tabs.widget(i)
+            if (
+                not view.page().profile().isOffTheRecord()
+                and view.url().scheme() in ("http", "https")
+            ):
+                if i == self.tabs.currentIndex():
+                    active = len(urls)
+                urls.append(view.url().toString())
+        try:
+            self.tools_session_write({
+                "enabled": True, "clean": bool(clean), "urls": urls,
+                "active": active
+            })
+        except OSError as error:
+            self.tools_session_timer.stop()
+            self.statusBar().showMessage(
+                "Session saving failed: " + str(error), 15000
+            )
+
     def reopen_closed_tab(self):
         if self.tools_closed_tabs:
             self.new_tab(QUrl(self.tools_closed_tabs.pop()))
@@ -747,7 +954,8 @@ class Browser(QMainWindow):
     def close_tab(self, index):
         view = self.tabs.widget(index)
         if view:
-            if view.url().scheme() in ("http", "https"):
+            if (not view.page().profile().isOffTheRecord()
+                    and view.url().scheme() in ("http", "https")):
                 self.tools_closed_tabs.append(view.url().toString())
                 self.tools_closed_tabs = self.tools_closed_tabs[-30:]
             view.stop()
@@ -1273,6 +1481,7 @@ class TrayBrowser(GamingBrowser):
 
         super().closeEvent(event)
         if event.isAccepted():
+            self.tools_session_snapshot(clean=True)
             QApplication.instance().quit()
 
 

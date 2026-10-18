@@ -106,6 +106,8 @@ def main():
     launcher = stage / "nimvex"
     launcher.write_text(
         '#!/bin/sh\n'
+        '# Temporary workaround for the observed Chromium prefetch crash.\n'
+        'export QTWEBENGINE_CHROMIUM_FLAGS="${QTWEBENGINE_CHROMIUM_FLAGS:+$QTWEBENGINE_CHROMIUM_FLAGS }--disable-features=PrefetchServiceWorker"\n'
         'exec /usr/bin/python3 /usr/share/nimvex/browser.py "$@"\n'
     )
     launcher.chmod(0o755)

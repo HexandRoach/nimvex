@@ -49,7 +49,7 @@ jobs:
               | select(.name | test("\\.(rpm|appimage)$"; "i"))
               | select(.name | test("\\.sig$"; "i") | not)
             ][0].browser_download_url // empty
-          ']"
+          ')"
 
           if [ -z "$download_url" ]; then
             echo "No RPM or AppImage asset was attached to this release." >&2
@@ -77,22 +77,22 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
+          import os
           from pathlib import Path
 
-          slug = "${{ env.SLUG }}"
-          path = Path(f"data/projects/{slug}.json")
+          slug = os.environ["SLUG"]
+          if not slug or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for c in slug):
+              raise SystemExit("Invalid project slug")
+
+          path = Path("data/projects") / (slug + ".json")
           data = json.loads(path.read_text(encoding="utf-8"))
 
-          data["description"] = "${{ env.DESCRIPTION }}" or data.get("description", "")
-          data["notes"] = "${{ env.NOTES }}"
-          data["version"] = "${{ env.VERSION }}".removeprefix("v")
-          data["download_url"] = "${{ env.DOWNLOAD_URL }}"
-          data["release_url"] = "${{ env.RELEASE_URL }}"
-          data["updated"] = "${{ env.UPDATED }}"
-
-          download_name = Path("${{ env.DOWNLOAD_URL }}").name
-          if download_name.startswith("rhex_"):
-              data["version"] = download_name.removeprefix("rhex_").removesuffix("_amd64.AppImage")
+          data["description"] = os.environ.get("DESCRIPTION") or data.get("description", "")
+          data["notes"] = os.environ.get("NOTES", "")
+          data["version"] = os.environ["VERSION"].removeprefix("v")
+          data["download_url"] = os.environ["DOWNLOAD_URL"]
+          data["release_url"] = os.environ["RELEASE_URL"]
+          data["updated"] = os.environ["UPDATED"]
 
           path.write_text(
               json.dumps(data, indent=2, ensure_ascii=False) + "\n",
